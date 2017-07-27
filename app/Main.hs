@@ -1,7 +1,5 @@
 module Main where
 
-import Lib
-
 import LambdaDesigner.Op
 import LambdaDesigner.Lib
 
