@@ -39,7 +39,7 @@ packages:
 - '.'
 - location:
     git: git@github.com:ulyssesp/lambdadesigner.git
-    commit: f8006b6b9c151297c319f10be8b452326d20a8ff
+    commit: 64a17d37e273b8b1290c79c1362c92efa936404d
   extra-dep: true
 
 # Dependency packages to be pulled from upstream that are not in the resolver
