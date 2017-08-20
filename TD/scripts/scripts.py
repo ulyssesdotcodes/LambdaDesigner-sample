@@ -27,8 +27,11 @@ classes = {
   'videoDeviceIn' : (videodeviceinTOP, 'videodevin', 'TOP'),
 
   'analyze' : (analyzeCHOP, 'analyze', 'CHOP'),
-  'audioIn' : (audiodeviceinCHOP, 'audiodevin', 'CHOP'),
+  'audioDevOut' : (audiodeviceoutCHOP, 'audiodevout', 'CHOP'),
+  'audioFileIn' : (audiofileinCHOP, 'audiofilein', 'CHOP'),
   'audioFilter' : (audiofilterCHOP, 'audiofilter', 'CHOP'),
+  'audioIn' : (audiodeviceinCHOP, 'audiodevin', 'CHOP'),
+  'audioMovie' : (audiomovieCHOP, 'audiomovie', 'CHOP'),
   'audioSpectrum' : (audiospectrumCHOP, 'audiospect', 'CHOP'),
   'constantChop' : (constantCHOP, 'constant', 'CHOP'),
   'count' : (countCHOP, 'count', 'CHOP'),
@@ -42,8 +45,8 @@ classes = {
   'math' : (mathCHOP, 'math', 'CHOP'),
   'mergeChop' : (mergeCHOP, 'merge', 'CHOP'),
   'midiIn' : (midiinmapCHOP, 'midiinmap', 'CHOP'),
-  'noiseChop' : (noiseCHOP, 'noise', 'CHOP'),
   'nullChop' : (nullCHOP, 'null', 'CHOP'),
+  'noiseChop' : (noiseCHOP, 'noise', 'CHOP'),
   'oscInChop' : (oscinCHOP, 'oscin', 'CHOP'),
   'outChop' : (outCHOP, 'out', 'CHOP'),
   'sopToChop' : (soptoCHOP, 'sopto', 'CHOP'),
@@ -100,6 +103,7 @@ def apply(newState):
 
   for diffi in list(reversed(list(ddiff))):
     splits = diffi[1].split('.') if isinstance(diffi[1], str) else diffi[1]
+    print(str(splits))
     if diffi[1] == '':
       if diffi[0] == 'add':
         addAll(diffi[2])
@@ -134,6 +138,10 @@ def apply(newState):
 
     elif splits[1] == 'text':
       op(getName(splits[0])).text = diffi[2][1]
+
+    elif splits[1] == 'commands' and diffi[0] == 'add':
+      runCommand(op(getName(splits[0])), diffi[2][0][1]['command'], diffi[2][0][1]['args'])
+
 
 def getName(name):
   return "/project1/lambda" + name
