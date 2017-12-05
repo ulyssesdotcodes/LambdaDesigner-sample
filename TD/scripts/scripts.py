@@ -15,12 +15,13 @@ classes = {
   'inTop' : (inTOP, 'in', 'TOP'),
   'nullTop' : (nullTOP, 'null', 'TOP'),
   'outTop' : (outTOP, 'out', 'TOP'),
-  'render' : (renderTOP, 'render', 'TOP'),
   'rectangleTop' : (rectangleTOP, 'rectangle', 'TOP'),
+  'render' : (renderTOP, 'render', 'TOP'),
   'hsvAdjustTop' : (hsvadjustTOP, 'hsvadj', 'TOP'),
   'levelTop' : (levelTOP, 'level', 'TOP'),
   'transform' : (transformTOP, 'transform', 'TOP'),
   'noiseTop' : (noiseTOP, 'noise', 'TOP'),
+  'ndiinTop' : (ndiinTOP, 'ndiin', 'TOP'),
   'ramp' : (rampTOP, 'ramp', 'TOP'),
   'switchTop' : (switchTOP, 'switch', 'TOP'),
   'selectTop' : (selectTOP, 'select', 'TOP'),
@@ -74,6 +75,7 @@ classes = {
   'chopExec' : (chopexecuteDAT, 'chopexecute', 'DAT'),
   'datExec' : (datexecuteDAT, 'datexecute', 'DAT'),
   'inDat' : (inDAT, 'in', 'DAT'),
+  'oscInDat' : (oscinDAT, 'oscin', 'DAT'),
   'outDat' : (outDAT, 'out', 'DAT'),
   'scriptDat' : (scriptDAT, 'script', 'DAT'),
   'selectDat' : (selectDAT, 'select', 'DAT'),
@@ -86,8 +88,6 @@ classes = {
   'light' : (lightCOMP, 'light', 'COMP'),
   'base' : (baseCOMP, 'base', 'COMP')
 }
-
-commandOrderRev = ["start", "cuepulse", "initialize"]
 
 def getClass(opname, default):
   return classes.get(opname, default)
@@ -106,7 +106,6 @@ def apply(newState):
 
   for diffi in list(reversed(list(ddiff))):
     splits = diffi[1].split('.') if isinstance(diffi[1], str) else diffi[1]
-    print(str(splits))
     if diffi[1] == '':
       if diffi[0] == 'add':
         addAll(diffi[2])
@@ -133,6 +132,11 @@ def apply(newState):
         addParameter(curop, splits[2], diffi[2][1])
       elif diffi[0] == 'remove':
         for param in diffi[2]:
+          print(param[0])
+          if(param[0] == 'tx'):
+            curop.par.tx = 0
+          elif param[0] == 'ty':
+            curop.par.ty = 0
           par = curop.pars(param[0])[0]
           if par.val:
             par.val = par.default
@@ -140,11 +144,8 @@ def apply(newState):
     elif splits[1] == 'text':
       op(getName(splits[0])).text = diffi[2][1]
 
-  for key, val in state.items():
-    if 'commands' in val:
-      commands = sorted(val['commands'], key=lambda x: commandOrderRev.index(x['args'][0]) if x['command']=='pulse' and x['args'][0] in commandOrderRev else -1, reverse=True)
-      for command in commands:
-        runCommand(op(getName(key)), command['command'], command['args'])
+    elif splits[1] == 'commands' and diffi[0] == 'add':
+      runCommand(op(getName(splits[0])), diffi[2][0][1]['command'], diffi[2][0][1]['args'])
 
 
 def getName(name):
@@ -185,11 +186,17 @@ def addChange(key, value):
     for k,v in pars:
       addParameter(newOp, k, v)
 
+  if 'commands' in value:
+    coms = value['commands']
+    for comm in coms:
+      runCommand(newOp, comm['command'], comm['args'])
+
   if 'text' in value and value['text'] != None:
     newOp.text = value['text']
 
   if 'connections' in value:
     return ((c, addr, i) for i,c in enumerate(value['connections']))
+
 
 def createOp(addr, ty):
   clazz = getClass(ty, 'none')
@@ -204,7 +211,7 @@ def createOp(addr, ty):
     op(addr).destroy()
 
   # Special case things that can't have duplicates
-  if clazz[1] == 'audiodevin' or clazz[1] == 'videodevin':
+  if clazz[1] == 'audiodevin' or clazz[1] == 'videodevin' or clazz[1] == 'ndiin':
     if op(clazz[1]) == None:
       parent().create(clazz[0], clazz[1])
     if clazz[2] == "CHOP":
@@ -233,6 +240,9 @@ def createOp(addr, ty):
 
 def addParameter(newOp, name, value):
   pars = newOp.pars(name)
+  if len(pars) == 0:
+    return
+
   par = pars[0]
   if isfloat(value):
     if par.isMenu:
@@ -249,16 +259,15 @@ def addParameter(newOp, name, value):
     newOp.par.loadonstartpulse.pulse()
 
 def runCommand(newOp, command, args):
-  print(str(args))
-  if command == "pulse":
-    pars = newOp.pars(args[0])
-    if len(pars) > 0:
-      if isfloat(args[1]):
-        pars[0].pulse(float(args[1]), frames=int(args[2]))
-      else:
-        pars[0].pulse(args[1], frames=int(args[2]))
-  elif command == "store":
-    newOp.store(args[0], args[1])
+    if command == "pulse":
+      pars = newOp.pars(args[0])
+      if len(pars) > 0:
+        if isfloat(args[1]):
+          pars[0].pulse(float(args[1]), frames=float(args[2]))
+        else:
+          pars[0].pulse(args[1])
+    elif command == "store":
+      newOp.store(args[0], args[1])
 
 def isfloat(value):
   try:
