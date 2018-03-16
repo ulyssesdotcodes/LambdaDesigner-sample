@@ -1,4 +1,5 @@
 from dictdiffer import diff, dot_lookup
+from collections import deque
 
 classes = {
   'blur' : (blurTOP, 'blur', 'TOP'),
@@ -35,13 +36,18 @@ classes = {
   'audioIn' : (audiodeviceinCHOP, 'audiodevin', 'CHOP'),
   'audioMovie' : (audiomovieCHOP, 'audiomovie', 'CHOP'),
   'audioSpectrum' : (audiospectrumCHOP, 'audiospect', 'CHOP'),
+  'chopToDat' : (choptoDAT, 'chopto', 'DAT'),
   'constantChop' : (constantCHOP, 'constant', 'CHOP'),
   'count' : (countCHOP, 'count', 'CHOP'),
+  'datToChop' : (dattoCHOP, 'datto', 'CHOP'),
   'delay' : (delayCHOP, 'delay', 'CHOP'),
+  'deleteChop' : (deleteCHOP, 'delete', 'CHOP'),
+  'expressionChop' : (expressionCHOP, 'expression', 'CHOP'),
   'fan' : (fanCHOP, 'fan', 'CHOP'),
   'feedbackChop' : (feedbackCHOP, 'feedback', 'CHOP'),
   'hold' : (holdCHOP, 'hold', 'CHOP'),
   'lag' : (lagCHOP, 'lag', 'CHOP'),
+  'leapmotion' : (leapmotionCHOP, 'leapmotion', 'CHOP'),
   'logic' : (logicCHOP, 'logic', 'CHOP'),
   'inChop' : (inCHOP, 'in', 'CHOP'),
   'math' : (mathCHOP, 'math', 'CHOP'),
@@ -51,13 +57,25 @@ classes = {
   'noiseChop' : (noiseCHOP, 'noise', 'CHOP'),
   'oscInChop' : (oscinCHOP, 'oscin', 'CHOP'),
   'outChop' : (outCHOP, 'out', 'CHOP'),
-  'sopToChop' : (soptoCHOP, 'sopto', 'CHOP'),
+  'renameChop' : (renameCHOP, 'rename', 'CHOP'),
+  'replaceChop' : (replaceCHOP, 'replace', 'CHOP'),
+  'resampleChop' : (resampleCHOP, 'resample', 'CHOP'),
+  'scriptChop' : (scriptCHOP, 'script', 'CHOP'),
   'selectChop' : (selectCHOP, 'select', 'CHOP'),
+  'sopToChop' : (soptoCHOP, 'sopto', 'CHOP'),
+  'shuffleChop' : (shuffleCHOP, 'shuffle', 'CHOP'),
   'switchChop' : (switchCHOP, 'switch', 'CHOP'),
+  'stretchChop' : (stretchCHOP, 'stretch', 'CHOP'),
+  'speedChop' : (speedCHOP, 'speed', 'CHOP'),
+  'topToChop' : (toptoCHOP, 'topto', 'CHOP'),
   'timer' : (timerCHOP, 'timer', 'CHOP'),
+  'trailChop' : (trailCHOP, 'trail', 'CHOP'),
+  'waveChop' : (waveCHOP, 'wave', 'CHOP'),
 
+  'boxSop' : (boxSOP, 'box', 'SOP'),
   'chopToSop' : (choptoSOP, 'chopto', 'SOP'),
   'circleSop' : (circleSOP, 'circle', 'SOP'),
+  'gridSop' : (gridSOP, 'grid', 'SOP'),
   'lineSop' : (lineSOP, 'line', 'SOP'),
   'mergeSop' : (mergeSOP, 'merge', 'SOP'),
   'metaball' : (metaballSOP, 'metaball', 'SOP'),
@@ -65,11 +83,15 @@ classes = {
   'inSop' : (inSOP, 'in', 'SOP'),
   'outSop' : (outSOP, 'out', 'SOP'),
   'sphere' : (sphereSOP, 'sphere', 'SOP'),
+  'torusSop' : (torusSOP, 'torus', 'SOP'),
   'sweep' : (sweepSOP, 'sweep', 'SOP'),
   'transformSop' : (transformSOP, 'transform', 'SOP'),
+  'tubeSop' : (tubeSOP, 'tube', 'SOP'),
 
   'inMat' : (inMAT, 'in', 'MAT'),
+  'wireframeMat' : (wireframeMAT, 'wireframe', 'MAT'),
   'outMat' : (outMAT, 'out', 'MAT'),
+  'pbrMat' : (pbrMAT, 'pbr', 'MAT'),
   'constMat' : (constantMAT, 'constant', 'MAT'),
 
   'chopExec' : (chopexecuteDAT, 'chopexecute', 'DAT'),
@@ -138,7 +160,9 @@ def apply(newState):
           elif param[0] == 'ty':
             curop.par.ty = 0
           par = curop.pars(param[0])[0]
+          print("val: " + str(par.val))
           if par.val:
+            print("def: " + str(par.default))
             par.val = par.default
 
     elif splits[1] == 'text':
@@ -153,9 +177,10 @@ def getName(name):
 
 def addAll(state):
   connections = []
-  queue = state
+  queue = deque(state)
+  i = 0
   while len(queue) > 0:
-    (key, value) = queue.pop()
+    (key, value) = queue.popleft()
     addr = getName(key)
     par = addr[:(addr.rfind('/'))]
     if op(par) != None:
@@ -170,6 +195,10 @@ def addAll(state):
       for connector in op(conn[1]).inputConnectors:
         connector.disconnect()
     op(getName(conn[0])).outputConnectors[0].connect(op(conn[1]).inputConnectors[conn[2]])
+    if op(conn[1]).type == 'feedback' and op(conn[1]).isCHOP:
+      print("feedback chop11")
+      op(conn[1]).par.reset.pulse(1, frames=2)
+
 
 def addChange(key, value):
   addr = getName(key)
@@ -211,7 +240,7 @@ def createOp(addr, ty):
     op(addr).destroy()
 
   # Special case things that can't have duplicates
-  if clazz[1] == 'audiodevin' or clazz[1] == 'videodevin' or clazz[1] == 'ndiin':
+  if clazz[1] == 'audiodevin' or clazz[1] == 'videodevin' or clazz[1] == 'ndiin' or clazz[1] == 'leapmotion':
     if op(clazz[1]) == None:
       parent().create(clazz[0], clazz[1])
     if clazz[2] == "CHOP":
@@ -255,7 +284,7 @@ def addParameter(newOp, name, value):
   # Special case loading tox as soon as we know source
   if name == "externaltox":
     newOp.par.reinitnet.pulse()
-  elif name == 'file' and newOp.type == "text":
+  elif name == 'file' and (newOp.type == "text" or newOp.type == "table"):
     newOp.par.loadonstartpulse.pulse()
 
 def runCommand(newOp, command, args):
